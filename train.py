@@ -20,7 +20,7 @@ class TrainingConfig:
     train_batch_size = 16
     eval_batch_size = 16  # how many images to sample during evaluation
     num_epochs = 100
-    gradient_accumulation_steps = 4
+    gradient_accumulation_steps = 1
     learning_rate = 1e-4
     lr_warmup_steps = 500
     save_image_epochs = 1   # Generate every epoch
@@ -45,7 +45,7 @@ preprocess = transforms.Compose(
 
 dataset = datasets.CIFAR10('data/cifar10', train=True, download=True, transform=preprocess)
 
-train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=config.train_batch_size, shuffle=True)
+train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=config.train_batch_size, shuffle=True, num_workers=4)
 
 
 model = CustomUNet2DConditionModel(
