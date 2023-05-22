@@ -17,16 +17,16 @@ import wandb
 @dataclass
 class TrainingConfig:
     image_size = 32  # the generated image resolution
-    train_batch_size = 16
+    train_batch_size = 32
     eval_batch_size = 16  # how many images to sample during evaluation
     num_epochs = 100
     gradient_accumulation_steps = 1
-    learning_rate = 1e-4
+    learning_rate = 1e-5
     lr_warmup_steps = 500
     save_image_epochs = 1   # Generate every epoch
-    save_model_epochs = 30
+    save_model_epochs = 15
     mixed_precision = 'fp16'  # `no` for float32, `fp16` for automatic mixed precision
-    output_dir = 'ddpm-cifar10-128-cond'  # the model name locally and on the HF Hub
+    output_dir = 'cond-ddpm-cifar10-128'  # the model name locally and on the HF Hub
     overwrite_output_dir = True  # overwrite the old model when re-running the notebook
     seed = 0
 
