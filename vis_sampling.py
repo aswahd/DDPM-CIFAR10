@@ -57,7 +57,7 @@ model = CustomUNet2DConditionModel(
 noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
 
 # Load model
-ckpt_path = 'cond-ddpm-cifar10-128/model_99.pt'
+ckpt_path = 'cond-ddpm-cifar10-128/model_59.pt'
 model.load_state_dict(torch.load(ckpt_path))
 model = model.to(device)
 
@@ -107,7 +107,13 @@ def forward(
         image_shape = (batch_size, model.in_channels, *model.sample_size)
 
     image = torch.randn(image_shape, generator=generator, device=device)
-    samples_all_steps = [image.clone()]
+
+    out = (image / 2 + 0.5).clamp(0, 1)
+    out = out.cpu().permute(0, 2, 3, 1).numpy()[0]
+    out = (out * 255).round().astype("uint8")
+    out = Image.fromarray(out)
+
+    samples_all_steps = [out]
     # set step values
     noise_scheduler.set_timesteps(num_inference_steps)
 
@@ -118,18 +124,19 @@ def forward(
         # 2. compute previous image: x_t -> x_t-1
         image = noise_scheduler.step(model_output, t, image, generator=generator).prev_sample
 
-        out = (image / 2 + 0.5).clamp(0, 1)
-        out = out.cpu().permute(0, 2, 3, 1).numpy()[0]
-        out = (out * 255).round().astype("uint8")
-        out = Image.fromarray(out)
-        samples_all_steps.append(out)
+        if (t + 1) % vis_every == 0:
+            out = (image / 2 + 0.5).clamp(0, 1)
+            out = out.cpu().permute(0, 2, 3, 1).numpy()[0]
+            out = (out * 255).round().astype("uint8")
+            out = Image.fromarray(out)
+            samples_all_steps.append(out)
     return samples_all_steps
 
 
 images = forward(batch_size=1, num_inference_steps=1000)
-fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+fig, axes = plt.subplots(1, 10, figsize=(10, 5))
 for i, ax in enumerate(axes):
     ax.axis("off")
-    ax.set_title(f"Step {i}")
+    ax.set_xlabel(f"Step {i}")
     ax.imshow(images[i])
 plt.savefig(os.path.join(save_dir, save_as), format='svg')
