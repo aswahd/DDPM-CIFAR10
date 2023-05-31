@@ -7,25 +7,15 @@ from custom_pipeline import CustomPipeline, CustomUNet2DConditionModel
 
 
 @dataclass
-class TrainingConfig:
+class EvalConfig:
     image_size = 32  # the generated image resolution
-    batch_size = 16  # how many images to sample during generation
-    mixed_precision = 'fp16'  # `no` for float32, `fp16` for automatic mixed precision
+    batch_size = 64  # how many images to sample during generation
+    mixed_precision = 'fp32'  # `no` for float32, `fp16` for automatic mixed precision
     seed = 0
 
 
-config = TrainingConfig()
-
-preprocess = transforms.Compose(
-    [
-        transforms.Resize((config.image_size, config.image_size)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5]),
-    ]
-)
-
-device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+config = EvalConfig()
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = CustomUNet2DConditionModel(
     sample_size=config.image_size,  # the target image resolution
     in_channels=3,  # the number of input channels, 3 for RGB images
@@ -57,22 +47,15 @@ noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
 ckpt_path = 'cond-ddpm-cifar10-128/model_99.pt'
 model.load_state_dict(torch.load(ckpt_path))
 model = model.to(device)
+model.eval()
 
-save_dir = "samples"
+
+save_dir = "outlier_data"
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 
-def generate_batch(batch_size, pipeline):
-    # Sample some images from random noise (this is the backward diffusion process).
-    # The default pipeline output type is `List[PIL.Image]`
-    return pipeline(
-        batch_size=batch_size,
-        generator=torch.manual_seed(config.seed),
-    ).images
-
-
-num_imgs_per_class = 128
+num_imgs_per_class = 1000
 batch_size = config.batch_size
 
 # Generate for each class
@@ -85,7 +68,7 @@ for i in range(10):
 
     counter = 0
     for _ in range(num_imgs_per_class // batch_size):
-        images = generate_batch(config.batch_size, pipeline)
+        images = pipeline(batch_size=config.batch_size).images
 
         for img in images:
             img.save(os.path.join(save_to, f'{counter}.png'))

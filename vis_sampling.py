@@ -57,16 +57,18 @@ model = CustomUNet2DConditionModel(
 noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
 
 # Load model
-ckpt_path = 'cond-ddpm-cifar10-128/model_59.pt'
+ckpt_path = 'cond-ddpm-cifar10-128-exp2/model_99.pt'
 model.load_state_dict(torch.load(ckpt_path))
 model = model.to(device)
+model.eval()
 
 save_dir = "samples"
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 vis_every = 100
-y = random.randint(0, 10)
+# y = random.randint(0, 10)
+y=0
 save_as = f"vis_sampling_{y}.svg"
 # Generate steps for the selected class
 y = torch.tensor([y], device=device)

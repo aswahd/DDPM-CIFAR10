@@ -20,7 +20,16 @@ class CustomUNet2DConditionModel(UNet2DModel):
             self.class_embedding = nn.Embedding(num_class_embeds, kwargs['block_out_channels'][0] * 4)
         else:
             self.class_embedding = None
+        self._class_embedding = None
 
+    def set_class_embedding(self, class_embedding):
+        self._class_embedding = class_embedding
+        
+    def get_class_embedding(self, class_labels):
+        assert self.class_embedding is not None, "class_embedding is None"
+        self._class_embedding = self.class_embedding(class_labels).to(dtype=self.dtype)
+        return self._class_embedding
+    
     def forward(
         self,
         sample,
@@ -62,10 +71,13 @@ class CustomUNet2DConditionModel(UNet2DModel):
         emb = self.time_embedding(t_emb)
 
         if self.class_embedding is not None:
-            if class_labels is None:
+            if self._class_embedding is not None:
+                class_emb = self._class_embedding
+            elif class_labels is not None:
+                class_emb = self.get_class_embedding(class_labels)
+            elif class_labels is None:
                 raise ValueError("class_labels should be provided when num_class_embeds > 0")
-
-            class_emb = self.class_embedding(class_labels).to(dtype=self.dtype)
+            
             emb = emb + class_emb
 
         # 2. pre-process
